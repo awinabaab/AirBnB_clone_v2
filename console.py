@@ -370,7 +370,7 @@ def extract_parameters(class_name, params):
             par.update({k: v.replace("\"", "").replace("_", " ")})
             if k in HBNBCommand.types[class_name].keys() \
                and HBNBCommand.types[class_name][k] is not str:
-                par.update({k: HBNBCommand.types[k](v)})
+                par.update({k: HBNBCommand.types[class_name][k](v)})
         param_dict.update(par)
     return param_dict
 
