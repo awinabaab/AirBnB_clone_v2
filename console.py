@@ -26,18 +26,19 @@ class HBNBCommand(cmd.Cmd):
 
     __dot_cmds = ['all', 'count', 'show', 'destroy', 'update']
 
-    types = {
-             'number_rooms': int, 'number_bathrooms': int,
-             'max_guest': int, 'price_by_night': int,
-             'latitude': float, 'longitude': float,
-             'email': str, 'password': str,
-             'first_name': str, 'last_name': str,
-             'description': str, 'text': str,
-             'state_id': str, 'city_id': str,
-             'user_id': str, 'place_id': str,
-             'amenity_id': str, 'id': str,
-             'review_id': str, 'name': str
-            }
+    types = {'User': {'email': str, 'password': str,
+             'first_name': str, 'last_name': str},
+             'State': {'name': str},
+             'City': {'state_id': str, 'name': str},
+             'Amenity': {'name': str},
+             'Review': {'user_id': str, 'place_id': str, 'text': str},
+             'Place': {'number_rooms': int, 'number_bathrooms': int,
+                       'max_guest': int, 'price_by_night': int,
+                       'latitude': float, 'longitude': float,
+                       'description': str, 'city_id': str,
+                       'amenity_ids': str, 'review_id': str, 'name': str
+                       }
+             }
 
     def preloop(self):
         """Prints if isatty is false"""
@@ -133,8 +134,8 @@ class HBNBCommand(cmd.Cmd):
         elif class_name not in HBNBCommand.__classes:
             print("** class doesn't exist **")
             return
-        param_dict = extract_parameters(params)
-        param_dict = filter_parameters(param_dict)
+        param_dict = extract_parameters(class_name, params)
+        param_dict = filter_parameters(class_name, param_dict)
         if param_dict is not None:
             new_instance = HBNBCommand.__classes[class_name](**param_dict)
         else:
@@ -358,7 +359,7 @@ def parameter_list(params):
     return param_list
 
 
-def extract_parameters(params):
+def extract_parameters(class_name, params):
     """Parses a list of parameters"""
     param_dict = {}
     if not params:
@@ -367,20 +368,20 @@ def extract_parameters(params):
     for par in params:
         for k, v in par.items():
             par.update({k: v.replace("\"", "").replace("_", " ")})
-            if k in HBNBCommand.types.keys() \
-               and HBNBCommand.types[k] is not str:
+            if k in HBNBCommand.types[class_name].keys() \
+               and HBNBCommand.types[class_name][k] is not str:
                 par.update({k: HBNBCommand.types[k](v)})
         param_dict.update(par)
     return param_dict
 
 
-def filter_parameters(params):
+def filter_parameters(class_name, params):
     """Removes unrecognized parameters from a dictionary"""
-    if not params:
+    if not params or not class_name:
         return
     param_dict = params.copy()
     for key in params:
-        if key not in HBNBCommand.types.keys():
+        if key not in HBNBCommand.types[class_name].keys():
             del param_dict[key]
     return param_dict
 
