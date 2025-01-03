@@ -18,32 +18,22 @@ class HBNBCommand(cmd.Cmd):
     # determines prompt for interactive/non-interactive modes
     prompt = '(hbnb) ' if sys.__stdin__.isatty() else ''
 
-    __classes = {
+    classes = {
                'BaseModel': BaseModel, 'User': User, 'Place': Place,
                'State': State, 'City': City, 'Amenity': Amenity,
                'Review': Review
               }
-
-    __dot_cmds = ['all', 'count', 'show', 'destroy', 'update']
-
-    types = {'User': {'email': str, 'password': str,
-             'first_name': str, 'last_name': str},
-             'State': {'name': str},
-             'City': {'state_id': str, 'name': str},
-             'Amenity': {'name': str},
-             'Review': {'user_id': str, 'place_id': str, 'text': str},
-             'Place': {'number_rooms': int, 'number_bathrooms': int,
-                       'max_guest': int, 'price_by_night': int,
-                       'latitude': float, 'longitude': float,
-                       'description': str, 'city_id': str,
-                       'amenity_ids': str, 'review_id': str, 'name': str
-                       }
-             }
+    dot_cmds = ['all', 'count', 'show', 'destroy', 'update']
+    types = {
+             'number_rooms': int, 'number_bathrooms': int,
+             'max_guest': int, 'price_by_night': int,
+             'latitude': float, 'longitude': float
+            }
 
     def preloop(self):
         """Prints if isatty is false"""
         if not sys.__stdin__.isatty():
-            print('(hbnb) ', end="")
+            print('(hbnb)')
 
     def precmd(self, line):
         """Reformat command line for advanced command syntax.
@@ -65,7 +55,7 @@ class HBNBCommand(cmd.Cmd):
 
             # isolate and validate <command>
             _cmd = pline[pline.find('.') + 1:pline.find('(')]
-            if _cmd not in HBNBCommand.__dot_cmds:
+            if _cmd not in HBNBCommand.dot_cmds:
                 raise Exception
 
             # if parantheses contain arguments, parse them
@@ -125,21 +115,23 @@ class HBNBCommand(cmd.Cmd):
 
     def do_create(self, args):
         """ Create an object of any class"""
-        cl_args = args.split()
-        class_name = cl_args[0]
-        params = cl_args[1:]
-        if not class_name:
+        if not args:
             print("** class name missing **")
             return
-        elif class_name not in HBNBCommand.__classes:
+        cl_args = args.split()
+        class_name = cl_args[0]
+        if class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        param_dict = extract_parameters(class_name, params)
-        param_dict = filter_parameters(class_name, param_dict)
+        params = cl_args[1:]
+        param_dict = extract_parameters(params)
         if param_dict is not None:
-            new_instance = HBNBCommand.__classes[class_name](**param_dict)
+            new_instance = HBNBCommand.classes[class_name](param_dict)
+            for key, value in param_dict.items():
+                setattr(new_instance, key, value)
         else:
-            new_instance = HBNBCommand.__classes[class_name]()
+            new_instance = HBNBCommand.classes[class_name]()
+        storage.save()
         print(new_instance.id)
         storage.save()
 
@@ -162,7 +154,7 @@ class HBNBCommand(cmd.Cmd):
             print("** class name missing **")
             return
 
-        if c_name not in HBNBCommand.__classes:
+        if c_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
 
@@ -172,7 +164,7 @@ class HBNBCommand(cmd.Cmd):
 
         key = c_name + "." + c_id
         try:
-            print(storage.all()[key])
+            print(storage._FileStorage__objects[key])
         except KeyError:
             print("** no instance found **")
 
@@ -193,7 +185,7 @@ class HBNBCommand(cmd.Cmd):
             print("** class name missing **")
             return
 
-        if c_name not in HBNBCommand.__classes:
+        if c_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
 
@@ -220,7 +212,7 @@ class HBNBCommand(cmd.Cmd):
 
         if args:
             args = args.split(' ')[0]  # remove possible trailing args
-            if args not in HBNBCommand.__classes:
+            if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
             for k, v in storage.all().items():
@@ -240,13 +232,13 @@ class HBNBCommand(cmd.Cmd):
     def do_count(self, args):
         """Count current number of class instances"""
         count = 0
-        for k, v in storage.all().items():
+        for k, v in storage._FileStorage__objects.items():
             if args == k.split('.')[0]:
                 count += 1
         print(count)
 
     def help_count(self):
-        """ Help information for the count command"""
+        """ """
         print("Usage: count <class_name>")
 
     def do_update(self, args):
@@ -260,7 +252,7 @@ class HBNBCommand(cmd.Cmd):
         else:  # class name not present
             print("** class name missing **")
             return
-        if c_name not in HBNBCommand.__classes:  # class name invalid
+        if c_name not in HBNBCommand.classes:  # class name invalid
             print("** class doesn't exist **")
             return
 
@@ -338,57 +330,42 @@ class HBNBCommand(cmd.Cmd):
         print("Usage: update <className> <id> <attName> <attVal>\n")
 
 
-def split_parameter(params):
-    """Splits parameters on the equal to character"""
-    param_list = []
+def split_parameters(params):
+    """Split up all given parameters"""
     if not params:
         return None
+    param_list = []
     for param in params:
         param_list.append(param.split("="))
     return param_list
 
 
 def parameter_list(params):
-    """Creates a list of parameter dictionaries"""
-    param_list = []
+    """Create list of parameter dictionaries"""
     if not params:
         return None
-    params = split_parameter(params)
+    param_dict_list = []
+    params = split_parameters(params)
     for param in params:
-        param_list.append(dict([param]))
-    return param_list
+        param_dict_list.append(dict([param]))
+    return param_dict_list
 
 
-def extract_parameters(class_name, params):
+def extract_parameters(params):
     """Parses a list of parameters"""
-    param_dict = {}
     if not params:
         return None
+    param_dict = {}
     params = parameter_list(params)
-    for par in params:
-        for k, v in par.items():
-            par.update({k: v.replace("\"", "").replace("_", " ")})
-            if k in HBNBCommand.types[class_name].keys() \
-               and HBNBCommand.types[class_name][k] is not str:
-                par.update({k: HBNBCommand.types[class_name][k](v)})
-        param_dict.update(par)
-    return param_dict
-
-
-def filter_parameters(class_name, params):
-    """Removes unrecognized parameters from a dictionary"""
-    if not params or not class_name:
-        return
-    param_dict = params.copy()
-    for key in params:
-        if key not in HBNBCommand.types[class_name].keys():
-            del param_dict[key]
+    for param in params:
+        for k, v in param.items():
+            param.update({k: v.replace("\"", "").replace("_", " ")})
+            if k in HBNBCommand.types.keys() and \
+                    HBNBCommand.types[k] is not str:
+                param.update({k: HBNBCommand.types[k](v)})
+        param_dict.update(param)
     return param_dict
 
 
 if __name__ == "__main__":
-    try:
-        HBNBCommand().cmdloop()
-    except KeyboardInterrupt:
-        print()
-        exit()
+    HBNBCommand().cmdloop()
