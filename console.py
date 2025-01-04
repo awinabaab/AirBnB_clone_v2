@@ -215,7 +215,7 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage.all(args).items():
+            for k, v in storage.all(HBNBCommand.classes[args]).items():
                 print_list.append(str(v))
         else:
             for k, v in storage.all().items():
@@ -370,4 +370,5 @@ if __name__ == "__main__":
     try:
         HBNBCommand().cmdloop()
     except KeyboardInterrupt:
-        pass
+        print()
+        exit()
