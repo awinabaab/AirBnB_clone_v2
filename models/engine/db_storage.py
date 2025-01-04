@@ -19,15 +19,6 @@ class DBStorage:
 
     __session = None
 
-    __models = {
-                'User': User,
-                'State': State,
-                'City': City,
-                'Place': Place,
-                'Amenity': Amenity,
-                'Review': Review
-                }
-
     def __init__(self):
         mysql_user = os.getenv("HBNB_MYSQL_USER")
         mysql_pwd = os.getenv("HBNB_MYSQL_PWD")
@@ -48,14 +39,13 @@ class DBStorage:
         """Query all objects depending on the class name argument cls"""
         obj_dict = {}
         if cls:
-            models = [DBStorage.__models[cls]]
+            models = [cls]
         else:
             models = [User, State, City, Amenity, Place, Review]
         for model in models:
             rows = self.__session.query(model).all()
             for row in rows:
                 key = f"{type(row).__name__}.{row.id}"
-                del row._sa_instance_state
                 obj_dict.update({key: row})
         return obj_dict
 
