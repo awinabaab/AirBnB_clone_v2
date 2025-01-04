@@ -215,8 +215,9 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage.all(HBNBCommand.classes[args]).items():
-                print_list.append(str(v))
+            for k, v in storage.all().items():
+                if k.split('.')[0] == args:
+                    print_list.append(str(v))
         else:
             for k, v in storage.all().items():
                 print_list.append(str(v))
@@ -367,8 +368,4 @@ def extract_parameters(params):
 
 
 if __name__ == "__main__":
-    try:
-        HBNBCommand().cmdloop()
-    except KeyboardInterrupt:
-        print()
-        exit()
+    HBNBCommand().cmdloop()
