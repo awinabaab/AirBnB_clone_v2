@@ -33,7 +33,7 @@ class HBNBCommand(cmd.Cmd):
     def preloop(self):
         """Prints if isatty is false"""
         if not sys.__stdin__.isatty():
-            print('(hbnb)')
+            print('(hbnb) ', end="")
 
     def precmd(self, line):
         """Reformat command line for advanced command syntax.
@@ -73,7 +73,7 @@ class HBNBCommand(cmd.Cmd):
                 pline = pline[2].strip()  # pline is now str
                 if pline:
                     # check for *args or **kwargs
-                    if pline[0] is '{' and pline[-1] is'}'\
+                    if pline[0] == '{' and pline[-1] == '}'\
                             and type(eval(pline)) is dict:
                         _args = pline
                     else:
@@ -118,11 +118,20 @@ class HBNBCommand(cmd.Cmd):
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+        cl_args = args.split()
+        class_name = cl_args[0]
+        if class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
+        params = cl_args[1:]
+        param_dict = extract_parameters(params)
+        if param_dict is not None:
+            new_instance = HBNBCommand.classes[class_name](param_dict)
+            for key, value in param_dict.items():
+                setattr(new_instance, key, value)
+        else:
+            new_instance = HBNBCommand.classes[class_name]()
+        new_instance.save()
         print(new_instance.id)
         storage.save()
 
@@ -187,7 +196,7 @@ class HBNBCommand(cmd.Cmd):
         key = c_name + "." + c_id
 
         try:
-            del(storage.all()[key])
+            del (storage.all()[key])
             storage.save()
         except KeyError:
             print("** no instance found **")
@@ -206,14 +215,13 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage._FileStorage__objects.items():
-                if k.split('.')[0] == args:
-                    print_list.append(str(v))
+            for k, v in storage.all(args).items():
+                print_list.append(str(v))
         else:
-            for k, v in storage._FileStorage__objects.items():
+            for k, v in storage.all().items():
                 print_list.append(str(v))
 
-        print(print_list)
+        print(str(print_list).replace("\"", ""))
 
     def help_all(self):
         """ Help information for the all command """
@@ -272,7 +280,7 @@ class HBNBCommand(cmd.Cmd):
                 args.append(v)
         else:  # isolate args
             args = args[2]
-            if args and args[0] is '\"':  # check for quoted arg
+            if args and args[0] == '\"':  # check for quoted arg
                 second_quote = args.find('\"', 1)
                 att_name = args[1:second_quote]
                 args = args[second_quote + 1:]
@@ -280,10 +288,10 @@ class HBNBCommand(cmd.Cmd):
             args = args.partition(' ')
 
             # if att_name was not quoted arg
-            if not att_name and args[0] is not ' ':
+            if not att_name and args[0] != ' ':
                 att_name = args[0]
             # check for quoted val arg
-            if args[2] and args[2][0] is '\"':
+            if args[2] and args[2][0] == '\"':
                 att_val = args[2][1:args[2].find('\"', 1)]
 
             # if att_val was not quoted arg
@@ -320,5 +328,46 @@ class HBNBCommand(cmd.Cmd):
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
 
+
+def split_parameters(params):
+    """Split up all given parameters"""
+    if not params:
+        return None
+    param_list = []
+    for param in params:
+        param_list.append(param.split("="))
+    return param_list
+
+
+def parameter_list(params):
+    """Create list of parameter dictionaries"""
+    if not params:
+        return None
+    param_dict_list = []
+    params = split_parameters(params)
+    for param in params:
+        param_dict_list.append(dict([param]))
+    return param_dict_list
+
+
+def extract_parameters(params):
+    """Parses a list of parameters"""
+    if not params:
+        return None
+    param_dict = {}
+    params = parameter_list(params)
+    for param in params:
+        for k, v in param.items():
+            param.update({k: v.replace("\"", "").replace("_", " ")})
+            if k in HBNBCommand.types.keys() and \
+                    HBNBCommand.types[k] is not str:
+                param.update({k: HBNBCommand.types[k](v)})
+        param_dict.update(param)
+    return param_dict
+
+
 if __name__ == "__main__":
-    HBNBCommand().cmdloop()
+    try:
+        HBNBCommand().cmdloop()
+    except KeyboardInterrupt:
+        pass
