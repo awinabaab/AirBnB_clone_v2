@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """Database Storage Engine"""
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, scoped_session
 from models.base_model import Base
 from models.state import State
@@ -67,3 +67,7 @@ class DBStorage:
         Base.metadata.create_all(self.__engine)
         Session = sessionmaker(bind=self.__engine, expire_on_commit=False)
         self.__session = scoped_session(Session)
+
+    def close(self):
+        """Closes the database session after each request"""
+        self.__session.remove()
