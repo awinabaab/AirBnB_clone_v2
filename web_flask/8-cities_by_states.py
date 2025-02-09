@@ -22,7 +22,6 @@ def cities_by_states():
 @app.teardown_appcontext
 def close(exception=None):
     """Removes the current SQLAlchemy Session after each request"""
-    #from models import storage
     if hasattr(g, 'db'):
         g.storage.close()
 
