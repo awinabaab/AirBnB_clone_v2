@@ -16,12 +16,14 @@ def states():
 
     return render_template("9-states.html", states=states, path="states")
 
+
 @app.route("/states/<id>", strict_slashes=False)
 def states_id(id):
     """Displays an HTML page with the State object with id"""
     state = storage.all(State).get(f"State.{id}")
 
     return render_template("9-states.html", state=state, path="states_id")
+
 
 @app.teardown_appcontext
 def close(exception=None):
