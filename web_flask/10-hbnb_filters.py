@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 @app.route("/hbnb_filters", strict_slashes=False)
 def hbnb_filters():
-    """"""
+    """Displays filters and amenities"""
     states = storage.all(State).values()
     amenities = storage.all(Amenity).values()
 
